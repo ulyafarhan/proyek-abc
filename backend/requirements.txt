@@ -3,7 +3,7 @@ uvicorn[standard]
 google-api-python-client
 python-dotenv
 pandas
-nltk
 scikit-learn
-text2emotion
-emoji==1.7.0
+transformers
+torch
+google-generativeai
