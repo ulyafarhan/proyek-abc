@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from modules.youtube_fetcher import parse_youtube_input, get_video_ids_from_channel, get_comments_from_videos
-from modules.gemini_analyzer import get_intelligent_analysis_from_gemini
+from modules.gemini_analyzer import get_intelligent_analysis_from_gemini, get_brainrot_analysis
 from modules.comment_analyzer import (
     add_sentiment_scores_to_df,
     analyze_emotions_hf,
@@ -10,6 +10,9 @@ from modules.comment_analyzer import (
     calculate_archetype_scores_from_gemini
 )
 import pandas as pd
+from pydantic import BaseModel
+from typing import List, Dict, Any
+from cachetools import TTLCache
 
 app = FastAPI(title="Algorithmic Self Analyzer API", version="5.0.0")
 
@@ -18,6 +21,12 @@ app.add_middleware(
     allow_origins=["*"], allow_credentials=True,
     allow_methods=["*"], allow_headers=["*"],
 )
+
+cache = TTLCache(maxsize=100, ttl=3600)
+
+class UserActivity(BaseModel):
+    timestamp: str
+    url: str
 
 @app.get("/analyze")
 def analyze_youtube_target(target: str = Query(..., description="YouTube Channel ID, Video URL, atau Channel URL")):
@@ -35,25 +44,18 @@ def analyze_youtube_target(target: str = Query(..., description="YouTube Channel
 
     comments_df = pd.DataFrame(comments)
 
-    # --- ALUR ANALISIS HIBRIDA TIGA TAHAP ---
-
-    # Tahap 1 (Pra-Filter): Tambahkan skor sentimen ke setiap komentar (gratis)
     comments_df = add_sentiment_scores_to_df(comments_df)
 
-    # Tahap 2 (Konsultasi Cerdas): Kirim sampel ke Gemini (1 API Call)
     gemini_analysis = get_intelligent_analysis_from_gemini(comments_df)
 
-    # Tahap 3 (Skoring Lokal): Hitung skor berdasarkan "kecerdasan" Gemini (gratis)
     archetype_scores = calculate_archetype_scores_from_gemini(comments_df, gemini_analysis)
     
-    # Lakukan analisis pendukung lainnya (gratis)
     emotion_scores = analyze_emotions_hf(comments_df)
     diversity_score = calculate_lexical_diversity(comments_df)
     reinforcement_score = calculate_reinforcement_score(comments_df)
 
-    # Tentukan arketipe akhir
     archetype = "Komunitas Seimbang/Netral"
-    if archetype_scores["joker_score"] > 5.0: # Ambang batas disesuaikan
+    if archetype_scores["joker_score"] > 5.0:
         archetype = "Arketipe Joker: Komunitas Reaktif & Anarkis"
     elif archetype_scores["thanos_score"] > 5.0:
         archetype = "Arketipe Thanos: Komunitas Logis & Ekstrem"
@@ -80,3 +82,13 @@ def analyze_youtube_target(target: str = Query(..., description="YouTube Channel
         },
         "emotion_distribution": emotion_scores
     }
+    
+
+@app.post("/analyze_behavior")
+def analyze_user_behavior(activities: List[UserActivity]):
+    try:
+        activities_dict = [activity.model_dump() for activity in activities]
+        analysis = get_brainrot_analysis(activities_dict)
+        return analysis
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

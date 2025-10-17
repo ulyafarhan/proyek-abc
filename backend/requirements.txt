@@ -3,7 +3,7 @@ uvicorn[standard]
 google-api-python-client
 python-dotenv
 pandas
-scikit-learn
 transformers
 torch
 google-generativeai
+cachetools

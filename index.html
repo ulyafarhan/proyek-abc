@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algorithmic Self Analyzer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: 0 20px;
+            background-color: #f7f9fc;
+            color: #1a202c;
+            line-height: 1.6;
+        }
+        .container { max-width: 800px; margin: 40px auto; }
+        .card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        h1, h2 { color: #2d3748; border-bottom: 2px solid #edf2f7; padding-bottom: 8px; }
+        h1 { text-align: center; }
+        h2 { margin-top: 0; }
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            box-sizing: border-box; /* Penting agar padding tidak merusak layout */
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #4299e1;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        button:hover { background-color: #2b6cb0; }
+        button:disabled { background-color: #a0aec0; cursor: not-allowed; }
+        #loading { display: none; text-align: center; font-weight: 600; color: #4a5568; }
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .result-box {
+            background: #f7fafc;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .result-box h3 { margin-top: 0; color: #4a5568; }
+        .result-box .archetype {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2b6cb0;
+        }
+        .result-box .score {
+            font-size: 32px;
+            font-weight: 700;
+            text-align: center;
+        }
+        .score-nihilism { color: #c53030; }
+        .score-utilitarianism { color: #2c5282; }
+        .score-brainrot { color: #b7791f; }
+        .keywords { display: flex; flex-wrap: wrap; gap: 8px; }
+        .keyword {
+            background: #e2e8f0;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Algorithmic Self Analyzer</h1>
+        <p style="text-align: center; margin-top: -10px; font-size: 14px; color: #718096;">Berdasarkan paper "Membangun Realitas di Dunia Maya"</p>
+
+        <div class="card">
+            <h2>Analisis Komunitas (Nihilisme vs Utilitarianisme)</h2>
+            <p>Masukkan URL Video atau Channel YouTube untuk menganalisis sentimen komunitas.</p>
+            <input type="text" id="youtubeUrl" placeholder="httpsS://www.youtube.com/watch?v=...">
+            <button id="analyzeCommunityBtn">Analisis Komunitas</button>
+            <div id="loadingCommunity">Menganalisis... (Ini bisa memakan waktu hingga 1 menit)</div>
+            <div id="resultsCommunity"></div>
+        </div>
+
+        <div class="card">
+            <h2>Analisis Perilaku (Risiko "Brain Rot")</h2>
+            <p>Tempelkan data JSON aktivitas Anda (format seperti di <code>data/aktivitas_pengguna.json</code>) untuk menganalisis pola konsumsi.</p>
+            <textarea id="activityData" rows="8" placeholder='[
+  {"timestamp": "2025-10-16T10:00:00Z", "url": "https://www.youtube.com/watch?v=5qap5aO4i9A"},
+  {"timestamp": "2025-10-16T10:05:00Z", "url": "https://www.tiktok.com/trending"}
+]'></textarea>
+            <button id="analyzeBehaviorBtn">Analisis Perilaku</button>
+            <div id="loadingBehavior">Menganalisis...</div>
+            <div id="resultsBehavior"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- Konfigurasi ---
+        const API_BASE_URL = "http://127.0.0.1:8000";
+
+        // --- Elemen DOM ---
+        const communityBtn = document.getElementById('analyzeCommunityBtn');
+        const behaviorBtn = document.getElementById('analyzeBehaviorBtn');
+        const communityUrl = document.getElementById('youtubeUrl');
+        const behaviorData = document.getElementById('activityData');
+        const loadingCommunity = document.getElementById('loadingCommunity');
+        const loadingBehavior = document.getElementById('loadingBehavior');
+        const resultsCommunity = document.getElementById('resultsCommunity');
+        const resultsBehavior = document.getElementById('resultsBehavior');
+
+        // --- Event Listener untuk Analisis Komunitas ---
+        communityBtn.addEventListener('click', async () => {
+            const targetUrl = communityUrl.value;
+            if (!targetUrl) {
+                alert('Silakan masukkan URL YouTube.');
+                return;
+            }
+
+            loadingCommunity.style.display = 'block';
+            resultsCommunity.innerHTML = '';
+            communityBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/analyze?target=${encodeURIComponent(targetUrl)}`);
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayCommunityResults(data);
+
+            } catch (error) {
+                resultsCommunity.innerHTML = `<p style="color: #c53030; font-weight: 600;">Error: ${error.message}</p>`;
+            } finally {
+                loadingCommunity.style.display = 'none';
+                communityBtn.disabled = false;
+            }
+        });
+
+        // --- Event Listener untuk Analisis Perilaku ---
+        behaviorBtn.addEventListener('click', async () => {
+            let activities;
+            try {
+                activities = JSON.parse(behaviorData.value);
+            } catch (error) {
+                alert('Format JSON tidak valid. Silakan periksa data Anda.');
+                return;
+            }
+
+            if (!Array.isArray(activities) || activities.length === 0) {
+                alert('Data JSON harus berupa array dan tidak boleh kosong.');
+                return;
+            }
+
+            loadingBehavior.style.display = 'block';
+            resultsBehavior.innerHTML = '';
+            behaviorBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/analyze_behavior`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(activities)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || `HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                displayBehaviorResults(data);
+
+            } catch (error) {
+                resultsBehavior.innerHTML = `<p style="color: #c53030; font-weight: 600;">Error: ${error.message}</p>`;
+            } finally {
+                loadingBehavior.style.display = 'none';
+                behaviorBtn.disabled = false;
+            }
+        });
+
+        // --- Fungsi untuk Menampilkan Hasil Komunitas ---
+        function displayCommunityResults(data) {
+            const metrics = data.quantitative_metrics;
+            const context = data.gemini_context_analysis;
+
+            resultsCommunity.innerHTML = `
+                <div class="result-box" style="grid-column: 1 / -1;">
+                    <h3>Diagnosis Arketipe</h3>
+                    <div class="archetype">${data.archetype_diagnosis.predicted_archetype}</div>
+                    <p><b>Vibe Komunitas:</b> ${context.community_vibe}</p>
+                    <p><b>Ringkasan Gemini:</b> ${data.archetype_diagnosis.details}</p>
+                </div>
+
+                <div class="results-grid">
+                    <div class="result-box">
+                        <h3>Skor Tren Nihilisme</h3>
+                        <div class="score score-nihilism">${metrics.nihilism_score.toFixed(2)} %</div>
+                        <p style="text-align: center; font-size: 14px; color: #718096;">Persentase komentar yang terdeteksi mengandung kata kunci nihilisme.</p>
+                        <hr>
+                        <h4>Kata Kunci Terdeteksi:</h4>
+                        <div class="keywords">
+                            ${context.nihilism_keywords_detected.map(k => `<span class="keyword">${k}</span>`).join('') || 'Tidak ada'}
+                        </div>
+                    </div>
+                    
+                    <div class="result-box">
+                        <h3>Skor Tren Utilitarianisme</h3>
+                        <div class="score score-utilitarianism">${metrics.utilitarianism_score.toFixed(2)} %</div>
+                        <p style="text-align: center; font-size: 14px; color: #718096;">Persentase komentar yang terdeteksi mengandung kata kunci utilitarianisme.</p>
+                        <hr>
+                        <h4>Kata Kunci Terdeteksi:</h4>
+                        <div class="keywords">
+                            ${context.utilitarianism_keywords_detected.map(k => `<span class="keyword">${k}</span>`).join('') || 'Tidak ada'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Fungsi untuk Menampilkan Hasil Perilaku ---
+        function displayBehaviorResults(data) {
+            resultsBehavior.innerHTML = `
+                <div class="result-box">
+                    <h3>Skor Risiko "Brain Rot"</h3>
+                    <div class="score score-brainrot">${data.brainrot_score} / 100</div>
+                    <p style="text-align: center; font-weight: 600;">${data.analysis}</p>
+                </div>
+            `;
+        }
+
+    </script>
+</body>
+</html>
