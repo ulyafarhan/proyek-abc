@@ -30,6 +30,14 @@ class UserActivity(BaseModel):
 
 @app.get("/analyze")
 def analyze_youtube_target(target: str = Query(..., description="YouTube Channel ID, Video URL, atau Channel URL")):
+    
+    cached_result = cache.get(target)
+    if cached_result:
+        print(f"Mengambil hasil dari cache in-memory untuk: {target}")
+        return cached_result
+
+    print(f"Melakukan analisis penuh untuk: {target}")
+
     parsed_input = parse_youtube_input(target)
     if parsed_input["type"] == "unknown":
         raise HTTPException(status_code=400, detail="Input tidak valid.")
@@ -53,6 +61,13 @@ def analyze_youtube_target(target: str = Query(..., description="YouTube Channel
     emotion_scores = analyze_emotions_hf(comments_df)
     diversity_score = calculate_lexical_diversity(comments_df)
     reinforcement_score = calculate_reinforcement_score(comments_df)
+    
+    sentiment_counts = comments_df['sentiment_label'].value_counts(normalize=True) * 100
+    sentiment_aggregation = {
+        'positive_percent': sentiment_counts.get('positive', 0),
+        'negative_percent': sentiment_counts.get('negative', 0),
+        'neutral_percent': sentiment_counts.get('neutral', 0)
+    }
 
     archetype = "Komunitas Seimbang/Netral"
     if archetype_scores["joker_score"] > 5.0:
@@ -60,7 +75,7 @@ def analyze_youtube_target(target: str = Query(..., description="YouTube Channel
     elif archetype_scores["thanos_score"] > 5.0:
         archetype = "Arketipe Thanos: Komunitas Logis & Ekstrem"
     
-    return {
+    final_result = {
         "analysis_summary": {
             "input_type": parsed_input["type"],
             "total_comments_analyzed": len(comments),
@@ -73,6 +88,7 @@ def analyze_youtube_target(target: str = Query(..., description="YouTube Channel
             "community_vibe": gemini_analysis.get("community_vibe"),
             "joker_keywords_detected": gemini_analysis.get("joker_keywords"),
             "thanos_keywords_detected": gemini_analysis.get("thanos_keywords"),
+            "main_themes": gemini_analysis.get("main_themes", [])
         },
         "quantitative_metrics": {
             "joker_score": archetype_scores["joker_score"],
@@ -80,9 +96,12 @@ def analyze_youtube_target(target: str = Query(..., description="YouTube Channel
             "skinner_reinforcement_score": reinforcement_score,
             "lexical_diversity_percent": diversity_score,
         },
-        "emotion_distribution": emotion_scores
+        "emotion_distribution": emotion_scores,
+        "sentiment_distribution": sentiment_aggregation
     }
     
+    cache[target] = final_result
+    return final_result
 
 @app.post("/analyze_behavior")
 def analyze_user_behavior(activities: List[UserActivity]):

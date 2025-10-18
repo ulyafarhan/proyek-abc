@@ -4,7 +4,7 @@ import re
 
 print("Memuat model AI, ini mungkin butuh beberapa saat...")
 sentiment_pipeline = pipeline("sentiment-analysis", model="cardiffnlp/twitter-roberta-base-sentiment-latest")
-emotion_pipeline = pipeline("text-classification", model="joelito/roberta-large-go_emotions", top_k=None)
+emotion_pipeline = pipeline("text-classification", model="j-hartmann/emotion-english-distilroberta-base", top_k=None)
 print("Model AI selesai dimuat.")
 
 ENGAGEMENT_PHRASES = [
@@ -15,27 +15,43 @@ ENGAGEMENT_PHRASES = [
 def add_sentiment_scores_to_df(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty or df['text'].dropna().empty:
         df['compound'] = 0.0
+        df['sentiment_label'] = 'neutral'
         return df
     
     sample_texts = df['text'].dropna().astype(str).tolist()
-    results = sentiment_pipeline(sample_texts, truncation=True)
+    results = sentiment_pipeline(sample_texts, truncation=True, max_length=512)    
     
     scores = {}
+    labels = {}
     for i, text in enumerate(sample_texts):
         score = results[i]['score']
-        if results[i]['label'] == 'NEGATIVE':
+        label = results[i]['label']
+        
+        if label == 'negative':
             score = -score
+        elif label == 'neutral':
+            score = 0
+        
         scores[text] = score
+        labels[text] = label
         
     df['compound'] = df['text'].map(scores).fillna(0.0)
+    df['sentiment_label'] = df['text'].map(labels).fillna('neutral')
     return df
 
 def analyze_emotions_hf(df: pd.DataFrame) -> dict:
     full_text = " ".join(df['text'].dropna().astype(str))
     if not full_text:
         return {'anger': 0, 'disgust': 0, 'fear': 0, 'joy': 0, 'sadness': 0, 'surprise': 0}
-    results = emotion_pipeline(full_text, truncation=True)
-    return {res['label']: round(res['score'] * 100, 2) for res in results[0]}
+    
+    results = emotion_pipeline(full_text, truncation=True, max_length=512)    
+    emotion_scores = {'anger': 0, 'disgust': 0, 'fear': 0, 'joy': 0, 'sadness': 0, 'surprise': 0}
+    
+    for res in results[0]:
+        if res['label'] in emotion_scores:
+            emotion_scores[res['label']] = round(res['score'] * 100, 2)
+            
+    return emotion_scores
 
 def calculate_lexical_diversity(df: pd.DataFrame) -> float:
     full_text = " ".join(df['text'].dropna().astype(str).str.lower())
@@ -45,7 +61,9 @@ def calculate_lexical_diversity(df: pd.DataFrame) -> float:
 
 def calculate_reinforcement_score(df: pd.DataFrame) -> float:
     if df.empty: return 0.0
-    engagement_count = sum(df['text'].str.contains(phrase, case=False, na=False, regex=False).sum() for phrase in ENGAGEMENT_PHRASES)
+    text_series = df['text'].dropna().astype(str)
+    if text_series.empty: return 0.0
+    engagement_count = sum(text_series.str.contains(phrase, case=False, na=False, regex=False).sum() for phrase in ENGAGEMENT_PHRASES)
     return round(min(100.0, (engagement_count / len(df)) * 200), 2)
 
 def calculate_archetype_scores_from_gemini(df: pd.DataFrame, gemini_analysis: dict) -> dict:
