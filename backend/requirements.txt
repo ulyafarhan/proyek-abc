@@ -7,3 +7,6 @@ transformers
 torch
 google-generativeai
 cachetools
+sqlalchemy
+passlib[bcrypt]
+python-jose[cryptography]

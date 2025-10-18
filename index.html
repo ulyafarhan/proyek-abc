@@ -1,252 +1,206 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Algorithmic Self Analyzer</title>
+    <title>PsycheMap Anima - Algorithmic Self Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0; padding: 0 20px;
-            background-color: #f7f9fc;
-            color: #1a202c;
-            line-height: 1.6;
+        body { font-family: 'Inter', sans-serif; }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #22d3ee;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s ease-in-out infinite;
         }
-        .container { max-width: 800px; margin: 40px auto; }
-        .card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-        h1, h2 { color: #2d3748; border-bottom: 2px solid #edf2f7; padding-bottom: 8px; }
-        h1 { text-align: center; }
-        h2 { margin-top: 0; }
-        input[type="text"], textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #cbd5e0;
-            border-radius: 8px;
-            box-sizing: border-box; /* Penting agar padding tidak merusak layout */
-            margin-bottom: 12px;
-            font-size: 16px;
-        }
-        button {
-            background-color: #4299e1;
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: background-color 0.2s;
-        }
-        button:hover { background-color: #2b6cb0; }
-        button:disabled { background-color: #a0aec0; cursor: not-allowed; }
-        #loading { display: none; text-align: center; font-weight: 600; color: #4a5568; }
-        .results-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        .result-box {
-            background: #f7fafc;
-            padding: 16px;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-        }
-        .result-box h3 { margin-top: 0; color: #4a5568; }
-        .result-box .archetype {
-            font-size: 24px;
-            font-weight: 700;
-            color: #2b6cb0;
-        }
-        .result-box .score {
-            font-size: 32px;
-            font-weight: 700;
-            text-align: center;
-        }
-        .score-nihilism { color: #c53030; }
-        .score-utilitarianism { color: #2c5282; }
-        .score-brainrot { color: #b7791f; }
-        .keywords { display: flex; flex-wrap: wrap; gap: 8px; }
-        .keyword {
-            background: #e2e8f0;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 500;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
-<body>
+<body class="bg-gray-900 text-gray-200">
 
-    <div class="container">
-        <h1>Algorithmic Self Analyzer</h1>
-        <p style="text-align: center; margin-top: -10px; font-size: 14px; color: #718096;">Berdasarkan paper "Membangun Realitas di Dunia Maya"</p>
+    <div class="container mx-auto p-4 md:p-8 max-w-6xl">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-cyan-400">PsycheMap Anima</h1>
+            <p class="text-xl text-gray-400 mt-2">Membongkar Realitas Algoritmik Anda</p>
+        </header>
 
-        <div class="card">
-            <h2>Analisis Komunitas (Nihilisme vs Utilitarianisme)</h2>
-            <p>Masukkan URL Video atau Channel YouTube untuk menganalisis sentimen komunitas.</p>
-            <input type="text" id="youtubeUrl" placeholder="httpsS://www.youtube.com/watch?v=...">
-            <button id="analyzeCommunityBtn">Analisis Komunitas</button>
-            <div id="loadingCommunity">Menganalisis... (Ini bisa memakan waktu hingga 1 menit)</div>
-            <div id="resultsCommunity"></div>
-        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <div class="space-y-8">
+                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-cyan-300 border-b border-gray-700 pb-3">1. Analisis Arketipe Komunitas</h2>
+                    <p class="text-sm text-gray-400 mb-4">Masukkan URL Video atau Channel YouTube untuk menganalisis DNA komunitasnya.</p>
+                    <input type="text" id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=..." class="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 transition">
+                    <button id="analyzeCommunityBtn" class="mt-4 w-full bg-cyan-600 hover:bg-cyan-700 font-bold py-3 px-4 rounded-lg transition transform hover:scale-105 shadow-lg flex items-center justify-center">
+                        Analisis Komunitas
+                    </button>
+                    <div id="loadingCommunity" class="hidden text-center mt-4 text-sm text-gray-400">Menganalisis... (Ini bisa memakan waktu hingga 1 menit)</div>
+                </div>
 
-        <div class="card">
-            <h2>Analisis Perilaku (Risiko "Brain Rot")</h2>
-            <p>Tempelkan data JSON aktivitas Anda (format seperti di <code>data/aktivitas_pengguna.json</code>) untuk menganalisis pola konsumsi.</p>
-            <textarea id="activityData" rows="8" placeholder='[
-  {"timestamp": "2025-10-16T10:00:00Z", "url": "https://www.youtube.com/watch?v=5qap5aO4i9A"},
-  {"timestamp": "2025-10-16T10:05:00Z", "url": "https://www.tiktok.com/trending"}
-]'></textarea>
-            <button id="analyzeBehaviorBtn">Analisis Perilaku</button>
-            <div id="loadingBehavior">Menganalisis...</div>
-            <div id="resultsBehavior"></div>
+                <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-cyan-300 border-b border-gray-700 pb-3">2. Analisis Risiko "Brain Rot"</h2>
+                    <p class="text-sm text-gray-400 mb-4">Tempelkan data JSON aktivitas Anda untuk menganalisis pola konsumsi konten.</p>
+                    <textarea id="activityData" rows="6" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-cyan-500 transition" placeholder='[{"timestamp": "...", "url": "..."}, ...]'>[{"timestamp": "2025-10-16T10:00:00Z", "url": "https://www.youtube.com/watch?v=5qap5aO4i9A"},{"timestamp": "2025-10-16T10:05:00Z", "url": "https://www.tiktok.com/trending"}]</textarea>
+                    <button id="analyzeBehaviorBtn" class="mt-4 w-full bg-teal-600 hover:bg-teal-700 font-bold py-3 px-4 rounded-lg transition transform hover:scale-105 shadow-lg flex items-center justify-center">
+                        Analisis Perilaku
+                    </button>
+                    <div id="loadingBehavior" class="hidden text-center mt-4 text-sm text-gray-400">Menganalisis...</div>
+                </div>
+            </div>
+
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+                <h2 class="text-2xl font-semibold mb-4 text-cyan-300 border-b border-gray-700 pb-3">Hasil Analisis AI</h2>
+                <div id="resultsCommunity" class="space-y-4"></div>
+                <div id="resultsBehavior" class="mt-4"></div>
+                <div id="initialMessage" class="text-center text-gray-500 pt-16">
+                    <p>Hasil analisis akan muncul di sini.</p>
+                    <p class="text-sm mt-2">Silakan masukkan input di sebelah kiri.</p>
+                </div>
+            </div>
+
         </div>
     </div>
 
     <script>
-        // --- Konfigurasi ---
         const API_BASE_URL = "http://127.0.0.1:8000";
 
         // --- Elemen DOM ---
         const communityBtn = document.getElementById('analyzeCommunityBtn');
         const behaviorBtn = document.getElementById('analyzeBehaviorBtn');
-        const communityUrl = document.getElementById('youtubeUrl');
-        const behaviorData = document.getElementById('activityData');
+        const youtubeUrl = document.getElementById('youtubeUrl');
+        const activityData = document.getElementById('activityData');
+        
         const loadingCommunity = document.getElementById('loadingCommunity');
         const loadingBehavior = document.getElementById('loadingBehavior');
+
         const resultsCommunity = document.getElementById('resultsCommunity');
         const resultsBehavior = document.getElementById('resultsBehavior');
+        const initialMessage = document.getElementById('initialMessage');
 
-        // --- Event Listener untuk Analisis Komunitas ---
-        communityBtn.addEventListener('click', async () => {
-            const targetUrl = communityUrl.value;
-            if (!targetUrl) {
-                alert('Silakan masukkan URL YouTube.');
-                return;
-            }
+        // --- Event Listeners ---
+        communityBtn.addEventListener('click', handleCommunityAnalysis);
+        behaviorBtn.addEventListener('click', handleBehaviorAnalysis);
 
-            loadingCommunity.style.display = 'block';
+        async function handleCommunityAnalysis() {
+            if (!youtubeUrl.value) { alert('Silakan masukkan URL YouTube.'); return; }
+            
+            setLoadingState(communityBtn, loadingCommunity, true, 'Menganalisis Komunitas...');
             resultsCommunity.innerHTML = '';
-            communityBtn.disabled = true;
+            resultsBehavior.innerHTML = '';
+            initialMessage.style.display = 'none';
 
             try {
-                const response = await fetch(`${API_BASE_URL}/analyze?target=${encodeURIComponent(targetUrl)}`);
-                
+                const response = await fetch(`${API_BASE_URL}/analyze?target=${encodeURIComponent(youtubeUrl.value)}`);
                 if (!response.ok) {
                     const error = await response.json();
                     throw new Error(error.detail || `HTTP error! status: ${response.status}`);
                 }
-
                 const data = await response.json();
                 displayCommunityResults(data);
-
             } catch (error) {
-                resultsCommunity.innerHTML = `<p style="color: #c53030; font-weight: 600;">Error: ${error.message}</p>`;
+                resultsCommunity.innerHTML = `<div class="text-red-400"><b>Error:</b> ${error.message}</div>`;
             } finally {
-                loadingCommunity.style.display = 'none';
-                communityBtn.disabled = false;
+                setLoadingState(communityBtn, loadingCommunity, false, 'Analisis Komunitas');
             }
-        });
+        }
 
-        // --- Event Listener untuk Analisis Perilaku ---
-        behaviorBtn.addEventListener('click', async () => {
+        async function handleBehaviorAnalysis() {
             let activities;
             try {
-                activities = JSON.parse(behaviorData.value);
-            } catch (error) {
-                alert('Format JSON tidak valid. Silakan periksa data Anda.');
-                return;
-            }
+                activities = JSON.parse(activityData.value);
+            } catch (error) { alert('Format JSON tidak valid.'); return; }
 
             if (!Array.isArray(activities) || activities.length === 0) {
-                alert('Data JSON harus berupa array dan tidak boleh kosong.');
-                return;
+                alert('Data JSON harus berupa array dan tidak boleh kosong.'); return;
             }
 
-            loadingBehavior.style.display = 'block';
+            setLoadingState(behaviorBtn, loadingBehavior, true, 'Menganalisis Perilaku...');
             resultsBehavior.innerHTML = '';
-            behaviorBtn.disabled = true;
-
+            resultsCommunity.innerHTML = '';
+            initialMessage.style.display = 'none';
+            
             try {
                 const response = await fetch(`${API_BASE_URL}/analyze_behavior`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(activities)
                 });
-
                 if (!response.ok) {
                     const error = await response.json();
                     throw new Error(error.detail || `HTTP error! status: ${response.status}`);
                 }
-                
                 const data = await response.json();
                 displayBehaviorResults(data);
-
             } catch (error) {
-                resultsBehavior.innerHTML = `<p style="color: #c53030; font-weight: 600;">Error: ${error.message}</p>`;
+                resultsBehavior.innerHTML = `<div class="text-red-400"><b>Error:</b> ${error.message}</div>`;
             } finally {
-                loadingBehavior.style.display = 'none';
-                behaviorBtn.disabled = false;
+                setLoadingState(behaviorBtn, loadingBehavior, false, 'Analisis Perilaku');
             }
-        });
+        }
 
-        // --- Fungsi untuk Menampilkan Hasil Komunitas ---
+        function setLoadingState(button, loader, isLoading, buttonText) {
+            button.disabled = isLoading;
+            loader.style.display = isLoading ? 'block' : 'none';
+            if (isLoading) {
+                button.innerHTML = `<div class="spinner"></div><span class="ml-2">${buttonText}</span>`;
+            } else {
+                button.textContent = buttonText;
+            }
+        }
+        
+        // --- Fungsi Tampilan Hasil ---
         function displayCommunityResults(data) {
             const metrics = data.quantitative_metrics;
             const context = data.gemini_context_analysis;
-
+            
             resultsCommunity.innerHTML = `
-                <div class="result-box" style="grid-column: 1 / -1;">
-                    <h3>Diagnosis Arketipe</h3>
-                    <div class="archetype">${data.archetype_diagnosis.predicted_archetype}</div>
-                    <p><b>Vibe Komunitas:</b> ${context.community_vibe}</p>
-                    <p><b>Ringkasan Gemini:</b> ${data.archetype_diagnosis.details}</p>
+                <div class="bg-gray-900 p-4 rounded-lg">
+                    <h3 class="font-semibold text-lg text-cyan-400">Diagnosis Arketipe</h3>
+                    <p class="text-2xl font-bold mt-1">${data.archetype_diagnosis.predicted_archetype}</p>
+                    <p class="text-sm text-gray-400 mt-2">${data.archetype_diagnosis.details}</p>
                 </div>
-
-                <div class="results-grid">
-                    <div class="result-box">
-                        <h3>Skor Tren Nihilisme</h3>
-                        <div class="score score-nihilism">${metrics.nihilism_score.toFixed(2)} %</div>
-                        <p style="text-align: center; font-size: 14px; color: #718096;">Persentase komentar yang terdeteksi mengandung kata kunci nihilisme.</p>
-                        <hr>
-                        <h4>Kata Kunci Terdeteksi:</h4>
-                        <div class="keywords">
-                            ${context.nihilism_keywords_detected.map(k => `<span class="keyword">${k}</span>`).join('') || 'Tidak ada'}
-                        </div>
+                <div class="bg-gray-900 p-4 rounded-lg">
+                     <h3 class="font-semibold text-lg text-cyan-400">Vibe & Topik Utama</h3>
+                     <p class="text-sm"><b class="text-gray-400">Vibe Komunitas:</b> ${context.community_vibe}</p>
+                     <p class="text-sm mt-1"><b class="text-gray-400">Topik Utama:</b> ${context.main_themes.join(', ')}</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mt-2">
+                    <div class="bg-gray-900 p-4 rounded-lg text-center">
+                        <h4 class="font-semibold text-red-400">Skor Joker</h4>
+                        <p class="text-3xl font-bold">${metrics.joker_score.toFixed(2)}</p>
                     </div>
-                    
-                    <div class="result-box">
-                        <h3>Skor Tren Utilitarianisme</h3>
-                        <div class="score score-utilitarianism">${metrics.utilitarianism_score.toFixed(2)} %</div>
-                        <p style="text-align: center; font-size: 14px; color: #718096;">Persentase komentar yang terdeteksi mengandung kata kunci utilitarianisme.</p>
-                        <hr>
-                        <h4>Kata Kunci Terdeteksi:</h4>
-                        <div class="keywords">
-                            ${context.utilitarianism_keywords_detected.map(k => `<span class="keyword">${k}</span>`).join('') || 'Tidak ada'}
-                        </div>
+                     <div class="bg-gray-900 p-4 rounded-lg text-center">
+                        <h4 class="font-semibold text-blue-400">Skor Thanos</h4>
+                        <p class="text-3xl font-bold">${metrics.thanos_score.toFixed(2)}</p>
                     </div>
                 </div>
             `;
         }
 
-        // --- Fungsi untuk Menampilkan Hasil Perilaku ---
         function displayBehaviorResults(data) {
+            let scoreColor = 'text-green-400';
+            if (data.brainrot_score > 50) scoreColor = 'text-yellow-400';
+            if (data.brainrot_score > 75) scoreColor = 'text-red-400';
+
             resultsBehavior.innerHTML = `
-                <div class="result-box">
-                    <h3>Skor Risiko "Brain Rot"</h3>
-                    <div class="score score-brainrot">${data.brainrot_score} / 100</div>
-                    <p style="text-align: center; font-weight: 600;">${data.analysis}</p>
+                <div class="bg-gray-900 p-4 rounded-lg">
+                    <h3 class="font-semibold text-lg text-cyan-400">Diagnosis "Brain Rot"</h3>
+                    <div class="text-center my-4">
+                        <p class="text-sm text-gray-400">Skor Risiko</p>
+                        <p class="text-6xl font-bold ${scoreColor}">${data.brainrot_score}</p>
+                    </div>
+                    <p class="text-sm bg-gray-900 p-3 rounded-md">${data.analysis}</p>
                 </div>
             `;
         }
-
     </script>
 </body>
 </html>
